@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NYC Scene Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#111}
+#map{width:100%;height:100vh}
+.legend{background:rgba(17,17,17,0.95);color:#fff;padding:10px 14px;border-radius:10px;font-size:11px;line-height:1.6;box-shadow:0 2px 12px rgba(0,0,0,.5);max-width:160px}
+.legend b{font-size:12px;display:block;margin-bottom:4px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.sidebar-toggle{position:fixed;top:12px;right:12px;z-index:1000;background:#222;color:#fff;border:none;padding:10px 14px;border-radius:8px;font-size:14px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.sidebar{position:fixed;top:0;right:-380px;width:370px;max-width:90vw;height:100vh;background:#111;color:#eee;z-index:999;overflow-y:auto;transition:right .3s ease;padding:50px 14px 20px;box-shadow:-4px 0 20px rgba(0,0,0,.5)}
+.sidebar.open{right:0}
+.sidebar h2{font-size:14px;color:#FFD700;margin:14px 0 6px;border-bottom:1px solid #333;padding-bottom:4px}
+.sidebar .item{padding:6px 0;border-bottom:1px solid #1a1a1a;font-size:12px}
+.filters{position:fixed;top:12px;left:50px;z-index:1000;display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100vw - 120px)}
+.fbtn{background:#222;color:#fff;border:2px solid #444;padding:6px 12px;border-radius:20px;font-size:11px;cursor:pointer;transition:all .2s}
+.fbtn.active{border-color:var(--c);background:var(--c);color:#fff}
+.fbtn:hover{opacity:0.8}
+.leaflet-popup-content{font-family:-apple-system,sans-serif;font-size:12px;line-height:1.5;max-width:280px}
+.leaflet-popup-content b{font-size:13px}
+</style>
+</head>
+<body>
+<div class="filters" id="filters">
+<button class="fbtn active" style="--c:#4CAF50" data-cat="casual" onclick="toggleFilter(this)">Casual</button>
+<button class="fbtn active" style="--c:#2196F3" data-cat="cocktail" onclick="toggleFilter(this)">Cocktail</button>
+<button class="fbtn active" style="--c:#E040FB" data-cat="dance" onclick="toggleFilter(this)">Dancing</button>
+<button class="fbtn active" style="--c:#f44336" data-cat="formal" onclick="toggleFilter(this)">Formal</button>
+<button class="fbtn active" style="--c:#ff9800" data-cat="restaurant" onclick="toggleFilter(this)">Restaurant</button>
+<button class="fbtn active" style="--c:#FFD700" data-cat="wine" onclick="toggleFilter(this)">Wine Bar</button>
+</div>
+<div id="map"></div>
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776; 95 spots</button>
+<div class="sidebar"><h2>Nolita (9)</h2>
+<div class="item" data-cat="cocktail" data-hood="Nolita">
+<div style="font-weight:600;color:#2196F3">The Mulberry</div>
+<div style="color:#999;font-size:11px">Subterranean speakeasy, velvet rope, NYFW crowd. THE Nolita spot.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 240 Mulberry St</div>
+<div style="font-size:11px"><a href="https://www.themulberrybar.com" target="_blank" style="color:#ff9800">Door list</a> <a href="https://instagram.com/themulberrybar" target="_blank" style="color:#E040FB">@themulberrybar</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Nolita">
+<div style="font-weight:600;color:#ff9800">Emilio's Ballato</div>
+<div style="color:#999;font-size:11px">Celebrity Italian. Secret back room, A-listers, spaghetti.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 55 E Houston St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/emiliosballato" target="_blank" style="color:#E040FB">@emiliosballato</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="Nolita">
+<div style="font-weight:600;color:#4CAF50">Spring Lounge</div>
+<div style="color:#999;font-size:11px">Since 1920s. Cheap drinks, tin ceilings, always packed.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 48 Spring St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/springloungenyc" target="_blank" style="color:#E040FB">@springloungenyc</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="Nolita">
+<div style="font-weight:600;color:#2196F3">Beyond the Pale</div>
+<div style="color:#999;font-size:11px">Irish-meets-cocktail. Olive oil vodka martini, leather booths.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 251 Mott St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/beyondthepalenyc" target="_blank" style="color:#E040FB">@beyondthepalenyc</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="Nolita">
+<div style="font-weight:600;color:#4CAF50">Mother's Ruin</div>
+<div style="color:#999;font-size:11px">Strong drinks, always a scene, neighborhood staple.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 18 Spring St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/mothersruinnyc" target="_blank" style="color:#E040FB">@mothersruinnyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Nolita">
+<div style="font-weight:600;color:#ff9800">La Esquina</div>
+<div style="color:#999;font-size:11px">Hidden underground Mexican. Celeb sightings, bottle service.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 114 Kenmare St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/laesquinanyc" target="_blank" style="color:#E040FB">@laesquinanyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Nolita">
+<div style="font-weight:600;color:#ff9800">Casino</div>
+<div style="color:#999;font-size:11px">Mediterranean, 80s theme. Dimes Square upscale, branzino.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 186 Hester St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/casino_nyc" target="_blank" style="color:#E040FB">@casino_nyc</a></div>
+</div>
+<div class="item" data-cat="formal" data-hood="Nolita">
+<div style="font-weight:600;color:#f44336">Pearl Box</div>
+<div style="color:#999;font-size:11px">Glamorous caviar bar. Ice-cold martinis, champagne.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 250 Mott St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/pearlboxnyc" target="_blank" style="color:#E040FB">@pearlboxnyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Nolita">
+<div style="font-weight:600;color:#ff9800">Oriana</div>
+<div style="color:#999;font-size:11px">NEW 2026 - 80-seat dramatic from Noortwyck team.</div>
+<div style="font-size:11px;color:#777">🌙 TBD | 📍 TBD Nolita</div>
+<div style="font-size:11px">TBD </div>
+</div>
+<h2>SoHo (10)</h2>
+<div class="item" data-cat="restaurant" data-hood="SoHo">
+<div style="font-weight:600;color:#ff9800">Raoul's</div>
+<div style="color:#999;font-size:11px">Iconic French bistro. Martinis at the bar, steak au poivre, De Niro.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 180 Prince St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/raoulsnyc" target="_blank" style="color:#E040FB">@raoulsnyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="SoHo">
+<div style="font-weight:600;color:#ff9800">Balthazar</div>
+<div style="color:#999;font-size:11px">THE SoHo scene. French bistro, always buzzing, impossible res.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 80 Spring St</div>
+<div style="font-size:11px"><a href="https://resy.com/cities/ny/balthazar" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/balthazarny" target="_blank" style="color:#E040FB">@balthazarny</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="SoHo">
+<div style="font-weight:600;color:#4CAF50">Fanelli Cafe</div>
+<div style="color:#999;font-size:11px">Since 1847. Models, artists, sidewalk block party, cheap.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 94 Prince St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/fanellicafe" target="_blank" style="color:#E040FB">@fanellicafe</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="SoHo">
+<div style="font-weight:600;color:#ff9800">Sartiano's</div>
+<div style="color:#999;font-size:11px">Mercer Hotel Italian. Leather pants crowd, SubMercer club downstairs.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 99 Prince St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/sartianos" target="_blank" style="color:#E040FB">@sartianos</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="SoHo">
+<div style="font-weight:600;color:#2196F3">Milady's</div>
+<div style="color:#999;font-size:11px">Former dive gone upscale. Inventive cocktails, sidewalk seating.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 160 Prince St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/miladysbar" target="_blank" style="color:#E040FB">@miladysbar</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="SoHo">
+<div style="font-weight:600;color:#2196F3">South Soho Bar</div>
+<div style="color:#999;font-size:11px">Tiny, dim, perfect date spot. Great Old Fashioneds, dark booth.</div>
+<div style="font-size:11px;color:#777">🌙 Tue-Sat | 📍 70 Kenmare St</div>
+<div style="font-size:11px">Walk-in </div>
+</div>
+<div class="item" data-cat="formal" data-hood="SoHo">
+<div style="font-weight:600;color:#f44336">Guild Bar</div>
+<div style="color:#999;font-size:11px">5-seat bar in luxury store. Best martini in NYC. Prada crowd.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 53 Howard St</div>
+<div style="font-size:11px">Walk-in (5 seats) </div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="SoHo">
+<div style="font-weight:600;color:#2196F3">Dandelion</div>
+<div style="color:#999;font-size:11px">NEW Dec 2025 - Zero Bond team. Sceney, well-made cocktails.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 134 W Houston St</div>
+<div style="font-size:11px"><a href="https://www.dandelionnewyork.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/dandelionnewyork" target="_blank" style="color:#E040FB">@dandelionnewyork</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="SoHo">
+<div style="font-weight:600;color:#ff9800">The Eighty Six</div>
+<div style="color:#999;font-size:11px">NEW - Catch Hospitality Group. Former Chumley's space, buzzy.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 86 Bedford St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/theeightysix" target="_blank" style="color:#E040FB">@theeightysix</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="SoHo">
+<div style="font-weight:600;color:#2196F3">Kabin</div>
+<div style="color:#999;font-size:11px">NEW - Sleek Nordic cocktail lounge. TimeOut pick.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 Hudson Square</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/kabinnyc" target="_blank" style="color:#E040FB">@kabinnyc</a></div>
+</div>
+<h2>NoHo (5)</h2>
+<div class="item" data-cat="cocktail" data-hood="NoHo">
+<div style="font-weight:600;color:#2196F3">Experimental Cocktail Club</div>
+<div style="color:#999;font-size:11px">Parisian speakeasy. Inventive cocktails, moody upstairs rooms.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 191 Chrystie St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/eccnyc" target="_blank" style="color:#E040FB">@eccnyc</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="NoHo">
+<div style="font-weight:600;color:#2196F3">Bosco</div>
+<div style="color:#999;font-size:11px">Candlelit cocktail bar, strong wine list, romantic.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 104 MacDougal St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/bosconyc" target="_blank" style="color:#E040FB">@bosconyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="NoHo">
+<div style="font-weight:600;color:#ff9800">Bond St</div>
+<div style="color:#999;font-size:11px">Sexy Japanese townhouse. Low lights, fashion crowd, sushi.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 6 Bond St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/bondstnyc" target="_blank" style="color:#E040FB">@bondstnyc</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="NoHo">
+<div style="font-weight:600;color:#4CAF50">The Garret East</div>
+<div style="color:#999;font-size:11px">Hidden above Five Guys. Burgers + cocktails upstairs, fun.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 206 Ave A</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/thegarretnyc" target="_blank" style="color:#E040FB">@thegarretnyc</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="NoHo">
+<div style="font-weight:600;color:#2196F3">Stone & Soil</div>
+<div style="color:#999;font-size:11px">NEW Feb 2026 - Japanese sustainability cocktails. Eater hot list.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 40 E 20th St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/stoneandsoilnyc" target="_blank" style="color:#E040FB">@stoneandsoilnyc</a></div>
+</div>
+<h2>LES (16)</h2>
+<div class="item" data-cat="dance" data-hood="LES">
+<div style="font-weight:600;color:#E040FB">Ripple Room</div>
+<div style="color:#999;font-size:11px">Lounge + upstairs dance floor. Velvet rope, thumping music, your spot.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 249 Eldridge St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/therippleroom" target="_blank" style="color:#E040FB">@therippleroom</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="LES">
+<div style="font-weight:600;color:#2196F3">Tigre</div>
+<div style="color:#999;font-size:11px">Hidden glam bar. Gold, mirrors, Maison Premiere team. Reservations only.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 142 Rivington St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/tigrenyc" target="_blank" style="color:#E040FB">@tigrenyc</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="LES">
+<div style="font-weight:600;color:#2196F3">Double Chicken Please</div>
+<div style="color:#999;font-size:11px">World's 50 Best Bars. Fried chicken + cartoon cocktails. The Coop upstairs.</div>
+<div style="font-size:11px;color:#777">🌙 Tue-Sat | 📍 115 Allen St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy (Coop)</a> <a href="https://instagram.com/doublechickenplease" target="_blank" style="color:#E040FB">@doublechickenplease</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="LES">
+<div style="font-weight:600;color:#2196F3">Attaboy</div>
+<div style="color:#999;font-size:11px">No menu. Tell bartender what you like. Successor to Milk & Honey.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 134 Eldridge St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/attaabornyc" target="_blank" style="color:#E040FB">@attaabornyc</a></div>
+</div>
+<div class="item" data-cat="dance" data-hood="LES">
+<div style="font-weight:600;color:#E040FB">Superbueno</div>
+<div style="color:#999;font-size:11px">World's #2 bar N. America. Red-lit Mexican-American, conga lines.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 127 MacDougal St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/superbuenobar" target="_blank" style="color:#E040FB">@superbuenobar</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="LES">
+<div style="font-weight:600;color:#4CAF50">Ray's</div>
+<div style="color:#999;font-size:11px">Faux-retro dive. Succession owner, tequila sodas, packed nightly.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 177 Chrystie St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/rabornyc" target="_blank" style="color:#E040FB">@rabornyc</a></div>
+</div>
+<div class="item" data-cat="wine" data-hood="LES">
+<div style="font-weight:600;color:#FFD700">Le Dive</div>
+<div style="color:#999;font-size:11px">Retro French wine bar. Natural wine, great patio, Dimes Square.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 30 Rivington St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/ledivenyc" target="_blank" style="color:#E040FB">@ledivenyc</a></div>
+</div>
+<div class="item" data-cat="wine" data-hood="LES">
+<div style="font-weight:600;color:#FFD700">Babysips</div>
+<div style="color:#999;font-size:11px">Narrow wine bar. Skin-contact wines, seafoam walls, octopus salad.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 165 Rivington St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/babysipsnyc" target="_blank" style="color:#E040FB">@babysipsnyc</a></div>
+</div>
+<div class="item" data-cat="wine" data-hood="LES">
+<div style="font-weight:600;color:#FFD700">Parcelle</div>
+<div style="color:#999;font-size:11px">Wine lounge + retailer. Leather couches, Dimes Square, casual.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 84 Rivington St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/parcellenyc" target="_blank" style="color:#E040FB">@parcellenyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="LES">
+<div style="font-weight:600;color:#ff9800">Lucien</div>
+<div style="color:#999;font-size:11px">French bistro since 98. Young fashion crowd, Charli XCX vibes.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 14 1st Ave</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/luciennyc" target="_blank" style="color:#E040FB">@luciennyc</a></div>
+</div>
+<div class="item" data-cat="dance" data-hood="LES">
+<div style="font-weight:600;color:#E040FB">Jean's</div>
+<div style="color:#999;font-size:11px">Chili oil martinis, micro-influencers. Red club downstairs for dancing.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 507 E 6th St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/jeansnyc" target="_blank" style="color:#E040FB">@jeansnyc</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="LES">
+<div style="font-weight:600;color:#2196F3">Chin Up</div>
+<div style="color:#999;font-size:11px">NEW - Gin destination. Eater hot list Feb 2026.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 170 Orchard St</div>
+<div style="font-size:11px"><a href="https://www.chinupbarnyc.com" target="_blank" style="color:#ff9800">Walk-in</a> <a href="https://instagram.com/chinupbarnyc" target="_blank" style="color:#E040FB">@chinupbarnyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="LES">
+<div style="font-weight:600;color:#ff9800">Kiki's</div>
+<div style="color:#999;font-size:11px">Greek taverna, cash only. Always a wait, always worth it.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 130 Division St</div>
+<div style="font-size:11px">Walk-in (cash) <a href="https://instagram.com/kikisnyc" target="_blank" style="color:#E040FB">@kikisnyc</a></div>
+</div>
+<div class="item" data-cat="dance" data-hood="LES">
+<div style="font-weight:600;color:#E040FB">Lullaby</div>
+<div style="color:#999;font-size:11px">Basement bar, couches, low ceilings, everyone dancing. House party vibes.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 151 Rivington St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/lullabylowereastside" target="_blank" style="color:#E040FB">@lullabylowereastside</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="LES">
+<div style="font-weight:600;color:#2196F3">The Dancer</div>
+<div style="color:#999;font-size:11px">Small cocktail bar. Red booth, falafel, low-key after-dinner.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 68 Rivington St</div>
+<div style="font-size:11px">Walk-in </div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="LES">
+<div style="font-weight:600;color:#2196F3">Bar Goto</div>
+<div style="color:#999;font-size:11px">Japanese cocktails from Pegu Club alum. Sakura martini, refined.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 245 Eldridge St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/bargoto" target="_blank" style="color:#E040FB">@bargoto</a></div>
+</div>
+<h2>East Village (10)</h2>
+<div class="item" data-cat="cocktail" data-hood="East Village">
+<div style="font-weight:600;color:#2196F3">Angel's Share</div>
+<div style="color:#999;font-size:11px">Hidden Japanese. Strict rules (no standing, small groups). World-class.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 8 Stuyvesant St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/angelsshare" target="_blank" style="color:#E040FB">@angelsshare</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="East Village">
+<div style="font-weight:600;color:#2196F3">Death & Co</div>
+<div style="color:#999;font-size:11px">Craft cocktail temple. Dark, intimate, pioneered the scene.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 433 E 6th St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/deathandcompany" target="_blank" style="color:#E040FB">@deathandcompany</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="East Village">
+<div style="font-weight:600;color:#4CAF50">Bar Snack</div>
+<div style="color:#999;font-size:11px">#1 TimeOut NYC 2026. Pickle cheese curds, frozen mezcal, 70s vibes.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 92 Second Ave</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/barsnacknyc" target="_blank" style="color:#E040FB">@barsnacknyc</a></div>
+</div>
+<div class="item" data-cat="dance" data-hood="East Village">
+<div style="font-weight:600;color:#E040FB">Joyface</div>
+<div style="color:#999;font-size:11px">Retro 70s living room. Waterbed, disco ball, chaotic dancing.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 90 Ave A</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/joyfacebar" target="_blank" style="color:#E040FB">@joyfacebar</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="East Village">
+<div style="font-weight:600;color:#2196F3">PDT</div>
+<div style="color:#999;font-size:11px">Phone booth in Crif Dogs hot dog shop. OG speakeasy.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 113 St Marks Pl</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/pdtnyc" target="_blank" style="color:#E040FB">@pdtnyc</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="East Village">
+<div style="font-weight:600;color:#2196F3">Oddball</div>
+<div style="color:#999;font-size:11px">NEW - Retro-futurist. Odd flavor pairings, $18 cocktails, big booths.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 212 Ave A</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/oddballnyc" target="_blank" style="color:#E040FB">@oddballnyc</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="East Village">
+<div style="font-weight:600;color:#2196F3">Seiren</div>
+<div style="color:#999;font-size:11px">NEW - Conservas bar. Eater hot list Feb 2026.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 TBD East Village</div>
+<div style="font-size:11px"><a href="https://www.seirennyc.com" target="_blank" style="color:#ff9800">Walk-in</a> <a href="https://instagram.com/seirennyc" target="_blank" style="color:#E040FB">@seirennyc</a></div>
+</div>
+<div class="item" data-cat="wine" data-hood="East Village">
+<div style="font-weight:600;color:#FFD700">Stars</div>
+<div style="color:#999;font-size:11px">12-seat wine bar. 1000+ bottles, omakase-style, cedar-lined.</div>
+<div style="font-size:11px;color:#777">🌙 Tue-Sat | 📍 51 E 1st St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/starseastvillage" target="_blank" style="color:#E040FB">@starseastvillage</a></div>
+</div>
+<div class="item" data-cat="dance" data-hood="East Village">
+<div style="font-weight:600;color:#E040FB">Ding-A-Ling</div>
+<div style="color:#999;font-size:11px">70s themed. Quiet early, packed after midnight. Disco ball dancing.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat late | 📍 95 Ave A</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/dingalingbar" target="_blank" style="color:#E040FB">@dingalingbar</a></div>
+</div>
+<div class="item" data-cat="dance" data-hood="East Village">
+<div style="font-weight:600;color:#E040FB">Wiggle Room</div>
+<div style="color:#999;font-size:11px">Main floor for dates, basement has disco ball + dance floor. DJ after 10pm.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 152 1st Ave</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/wiggleroomnyc" target="_blank" style="color:#E040FB">@wiggleroomnyc</a></div>
+</div>
+<h2>West Village (12)</h2>
+<div class="item" data-cat="cocktail" data-hood="West Village">
+<div style="font-weight:600;color:#2196F3">Employees Only</div>
+<div style="color:#999;font-size:11px">Iconic speakeasy since 2004. Psychic at door, lab coat bartenders.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 510 Hudson St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy (dining)</a> <a href="https://instagram.com/employeesonlybar" target="_blank" style="color:#E040FB">@employeesonlybar</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="West Village">
+<div style="font-weight:600;color:#2196F3">Little Branch</div>
+<div style="color:#999;font-size:11px">Underground speakeasy, strict capacity, live jazz, pitch-black.</div>
+<div style="font-size:11px;color:#777">🌙 Tue-Sat | 📍 22 7th Ave S</div>
+<div style="font-size:11px">Walk-in </div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="West Village">
+<div style="font-weight:600;color:#2196F3">Katana Kitten</div>
+<div style="color:#999;font-size:11px">Japanese cocktails. Matcha, shiso G&T, mortadella katsu sando.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 531 Hudson St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/katanakitten" target="_blank" style="color:#E040FB">@katanakitten</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="West Village">
+<div style="font-weight:600;color:#2196F3">Sip & Guzzle</div>
+<div style="color:#999;font-size:11px">Bi-level from EO vets. Shochu cocktails, $150 wagyu sando.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 108 Greenwich Ave</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/sipandguzzle" target="_blank" style="color:#E040FB">@sipandguzzle</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="West Village">
+<div style="font-weight:600;color:#ff9800">Bar Pisellino</div>
+<div style="color:#999;font-size:11px">Italian aperitivo from Via Carota team. Spritz central, sidewalk scene.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 52 Grove St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/barpisellino" target="_blank" style="color:#E040FB">@barpisellino</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="West Village">
+<div style="font-weight:600;color:#4CAF50">The Happiest Hour</div>
+<div style="color:#999;font-size:11px">Retro tiki vibes, frozen drinks, always a fun time.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 121 W 10th St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/thehappiesthour" target="_blank" style="color:#E040FB">@thehappiesthour</a></div>
+</div>
+<div class="item" data-cat="formal" data-hood="West Village">
+<div style="font-weight:600;color:#f44336">ZZ's Club</div>
+<div style="color:#999;font-size:11px">Members-only jazz supper club. A-list crowd, exclusive.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 55 Hudson St</div>
+<div style="font-size:11px">Members only <a href="https://instagram.com/zzsclub" target="_blank" style="color:#E040FB">@zzsclub</a></div>
+</div>
+<div class="item" data-cat="wine" data-hood="West Village">
+<div style="font-weight:600;color:#FFD700">Binx</div>
+<div style="color:#999;font-size:11px">Pastel wine bar. Disco ball, fuzzy bar stools, natural wines.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 162 W 4th St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/binxwine" target="_blank" style="color:#E040FB">@binxwine</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="West Village">
+<div style="font-weight:600;color:#ff9800">Carbone</div>
+<div style="color:#999;font-size:11px">Italian-American icon. Celebs, velvet booths, spicy rigatoni, $$$$.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 181 Thompson St</div>
+<div style="font-size:11px"><a href="https://resy.com/cities/ny/carbone" target="_blank" style="color:#ff9800">Resy (very hard)</a> <a href="https://instagram.com/carbonenewyork" target="_blank" style="color:#E040FB">@carbonenewyork</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="West Village">
+<div style="font-weight:600;color:#ff9800">I Sodi</div>
+<div style="color:#999;font-size:11px">Tiny Tuscan. Romantic, impossible reservation, perfect pasta.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 105 Christopher St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/isodinyc" target="_blank" style="color:#E040FB">@isodinyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="West Village">
+<div style="font-weight:600;color:#ff9800">Via Carota</div>
+<div style="color:#999;font-size:11px">Walk-in only Italian. Outdoor scene, Jenner/Bieber sightings.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 51 Grove St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/viacarota" target="_blank" style="color:#E040FB">@viacarota</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="West Village">
+<div style="font-weight:600;color:#ff9800">American Bar</div>
+<div style="color:#999;font-size:11px">Upscale, Hamptons crowd. Solid burger, miso black cod.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 33 Greenwich Ave</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/americanbarnyc" target="_blank" style="color:#E040FB">@americanbarnyc</a></div>
+</div>
+<h2>Greenwich Vlg (4)</h2>
+<div class="item" data-cat="cocktail" data-hood="Greenwich Vlg">
+<div style="font-weight:600;color:#2196F3">Dante</div>
+<div style="color:#999;font-size:11px">World's best bar regular. Negronis, gorgeous space, aperitivo.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 79-81 MacDougal St</div>
+<div style="font-size:11px"><a href="https://resy.com/cities/ny/dante" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/dante_nyc" target="_blank" style="color:#E040FB">@dante_nyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Greenwich Vlg">
+<div style="font-weight:600;color:#ff9800">Bar Pitti</div>
+<div style="color:#999;font-size:11px">Walk-in Italian trattoria. Outdoor scene, truffle pasta, cash only.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 268 6th Ave</div>
+<div style="font-size:11px">Walk-in (cash) <a href="https://instagram.com/barpitti" target="_blank" style="color:#E040FB">@barpitti</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="Greenwich Vlg">
+<div style="font-weight:600;color:#2196F3">124 Old Rabbit Club</div>
+<div style="color:#999;font-size:11px">Speakeasy below a coffee shop. Dark, romantic, strong drinks.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 124 MacDougal St</div>
+<div style="font-size:11px">Walk-in </div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Greenwich Vlg">
+<div style="font-weight:600;color:#ff9800">Noortwyck</div>
+<div style="color:#999;font-size:11px">Minimalist, ambitious. Wine-focused, intimate, creative.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 66 Greenwich Ave</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/noortwyck" target="_blank" style="color:#E040FB">@noortwyck</a></div>
+</div>
+<h2>Tribeca (12)</h2>
+<div class="item" data-cat="cocktail" data-hood="Tribeca">
+<div style="font-weight:600;color:#2196F3">Titsou</div>
+<div style="color:#999;font-size:11px">Tiny, discreet, chandeliers. $32 smoked old fashioned. No res, host approval.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 Hotel Fouquet's, 100 Barclay</div>
+<div style="font-size:11px">Walk-in (host approval) <a href="https://instagram.com/fouquetsnewyork" target="_blank" style="color:#E040FB">@fouquetsnewyork</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="Tribeca">
+<div style="font-weight:600;color:#2196F3">Galerie</div>
+<div style="color:#999;font-size:11px">Hotel bar. Fireplaces, velvet furniture, great burger from next door.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 Smyth Hotel, 85 W Broadway</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/galeriebar" target="_blank" style="color:#E040FB">@galeriebar</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="Tribeca">
+<div style="font-weight:600;color:#2196F3">Saint Tuesday</div>
+<div style="color:#999;font-size:11px">Hidden underground bar. Secret entrance, live jazz, blue cheese cocktails.</div>
+<div style="font-size:11px;color:#777">🌙 Tue-Sat | 📍 Walker Hotel, 15 Walker St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/sainttuesdaynyc" target="_blank" style="color:#E040FB">@sainttuesdaynyc</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="Tribeca">
+<div style="font-weight:600;color:#2196F3">Weather Up</div>
+<div style="color:#999;font-size:11px">Creative cocktails. Allspice, Madeira, apricot. Long bar, booths.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 159 Duane St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/weatherupbar" target="_blank" style="color:#E040FB">@weatherupbar</a></div>
+</div>
+<div class="item" data-cat="formal" data-hood="Tribeca">
+<div style="font-weight:600;color:#f44336">Brandy Library</div>
+<div style="color:#999;font-size:11px">1500+ spirits. Leather chairs, fireplace. Must be 25+. Power moves.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 25 N Moore St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/brandylibrary" target="_blank" style="color:#E040FB">@brandylibrary</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="Tribeca">
+<div style="font-weight:600;color:#4CAF50">North Bar</div>
+<div style="color:#999;font-size:11px">Liveliest in NW Tribeca. Nautical theme, fish tacos, vodka-stained polos.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 213 N End Ave</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/northbartribeca" target="_blank" style="color:#E040FB">@northbartribeca</a></div>
+</div>
+<div class="item" data-cat="dance" data-hood="Tribeca">
+<div style="font-weight:600;color:#E040FB">Primos</div>
+<div style="color:#999;font-size:11px">Hotel bar + big dance floor in back. Underrated, not too crowded.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 Frederick Hotel, 95 W Broadway</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/primostribeca" target="_blank" style="color:#E040FB">@primostribeca</a></div>
+</div>
+<div class="item" data-cat="wine" data-hood="Tribeca">
+<div style="font-weight:600;color:#FFD700">Anotheroom</div>
+<div style="color:#999;font-size:11px">Darkest bar in Tribeca. Beer/wine/sake only. Romantic, side-by-side seating.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 249 W Broadway</div>
+<div style="font-size:11px">Walk-in </div>
+</div>
+<div class="item" data-cat="casual" data-hood="Tribeca">
+<div style="font-weight:600;color:#4CAF50">Puffy's Tavern</div>
+<div style="color:#999;font-size:11px">Classic neighborhood dive. No pretense, darts, local regulars.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 81 Hudson St</div>
+<div style="font-size:11px">Walk-in </div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Tribeca">
+<div style="font-weight:600;color:#ff9800">Fouquet's</div>
+<div style="color:#999;font-size:11px">Tribeca billionaires. Designer everything, steak tartare. A bit much.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 100 Barclay St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/fouquetsnewyork" target="_blank" style="color:#E040FB">@fouquetsnewyork</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Tribeca">
+<div style="font-weight:600;color:#ff9800">Locanda Verde</div>
+<div style="color:#999;font-size:11px">Robert De Niro's Italian. Andrew Carmellini. Always packed.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 377 Greenwich St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/locandaverdenyc" target="_blank" style="color:#E040FB">@locandaverdenyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Tribeca">
+<div style="font-weight:600;color:#ff9800">The Odeon</div>
+<div style="color:#999;font-size:11px">Classic since 1980. French-American bistro. Warhol hung here.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 145 W Broadway</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/theodeonrestaurant" target="_blank" style="color:#E040FB">@theodeonrestaurant</a></div>
+</div>
+<h2>Flatiron (4)</h2>
+<div class="item" data-cat="cocktail" data-hood="Flatiron">
+<div style="font-weight:600;color:#2196F3">Raines Law Room</div>
+<div style="color:#999;font-size:11px">Ring the bell. Velvet couches, incredible cocktails, date classic.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 48 W 17th St</div>
+<div style="font-size:11px"><a href="https://resy.com/cities/ny/raines-law-room" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/raineslawroom" target="_blank" style="color:#E040FB">@raineslawroom</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="Flatiron">
+<div style="font-weight:600;color:#2196F3">Dear Irving</div>
+<div style="color:#999;font-size:11px">Time-travel themed. Gorgeous decor, strong date magnet.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 55 Irving Pl</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/dearirving" target="_blank" style="color:#E040FB">@dearirving</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="Flatiron">
+<div style="font-weight:600;color:#2196F3">Wallflower</div>
+<div style="color:#999;font-size:11px">Vinyl records + cocktails + downtown views. New and buzzy.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 W 24th St</div>
+<div style="font-size:11px">Walk-in </div>
+</div>
+<div class="item" data-cat="formal" data-hood="Flatiron">
+<div style="font-weight:600;color:#f44336">Fotografiska Bar</div>
+<div style="color:#999;font-size:11px">Photography museum rooftop/bar. Stunning views, creative crowd.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 281 Park Ave S</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/fotografiska.newyork" target="_blank" style="color:#E040FB">@fotografiska.newyork</a></div>
+</div>
+<h2>Gramercy (4)</h2>
+<div class="item" data-cat="formal" data-hood="Gramercy">
+<div style="font-weight:600;color:#f44336">Rose Bar</div>
+<div style="color:#999;font-size:11px">Gramercy Park Hotel. Art on walls, fashion crowd, bottle service.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 2 Lexington Ave</div>
+<div style="font-size:11px">Resy / walk-in <a href="https://instagram.com/rosebar" target="_blank" style="color:#E040FB">@rosebar</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Gramercy">
+<div style="font-weight:600;color:#ff9800">Casa Mono</div>
+<div style="color:#999;font-size:11px">Mario Batali's Spanish tapas. Intimate, buzzy, wine-heavy.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 52 Irving Pl</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/casamono" target="_blank" style="color:#E040FB">@casamono</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="Gramercy">
+<div style="font-weight:600;color:#4CAF50">Pete's Tavern</div>
+<div style="color:#999;font-size:11px">NYC's oldest bar (1864). Relaxed, sidewalk tables, good food.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 129 E 18th St</div>
+<div style="font-size:11px"><a href="https://opentable.com" target="_blank" style="color:#ff9800">OpenTable</a> <a href="https://instagram.com/petestavern" target="_blank" style="color:#E040FB">@petestavern</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="Gramercy">
+<div style="font-weight:600;color:#4CAF50">Old Town Bar</div>
+<div style="color:#999;font-size:11px">Historic saloon. Solid burgers, tall ceilings, unpretentious.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 45 E 18th St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/oldtownbar" target="_blank" style="color:#E040FB">@oldtownbar</a></div>
+</div>
+<h2>Chelsea (6)</h2>
+<div class="item" data-cat="cocktail" data-hood="Chelsea">
+<div style="font-weight:600;color:#2196F3">Raines Law Room Chelsea</div>
+<div style="color:#999;font-size:11px">Second location. Same speakeasy magic, same bell.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 232 W 21st St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/raineslawroom" target="_blank" style="color:#E040FB">@raineslawroom</a></div>
+</div>
+<div class="item" data-cat="cocktail" data-hood="Chelsea">
+<div style="font-weight:600;color:#2196F3">Bathtub Gin</div>
+<div style="color:#999;font-size:11px">Behind coffee shop door. Bathtub centerpiece, great cocktails.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 132 W 27th St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/bathtubginnyc" target="_blank" style="color:#E040FB">@bathtubginnyc</a></div>
+</div>
+<div class="item" data-cat="formal" data-hood="Chelsea">
+<div style="font-weight:600;color:#f44336">PHD Rooftop</div>
+<div style="color:#999;font-size:11px">Dream Hotel rooftop. Bottle service, skyline views, model crowd.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 355 W 16th St</div>
+<div style="font-size:11px"><a href="https://www.phdrooftop.com" target="_blank" style="color:#ff9800">Tock</a> <a href="https://instagram.com/phdrooftop" target="_blank" style="color:#E040FB">@phdrooftop</a></div>
+</div>
+<div class="item" data-cat="casual" data-hood="Chelsea">
+<div style="font-weight:600;color:#4CAF50">The Tippler</div>
+<div style="color:#999;font-size:11px">Below Chelsea Market. Spacious, craft cocktails, great for groups.</div>
+<div style="font-size:11px;color:#777">🌙 Wed-Sat | 📍 425 W 15th St</div>
+<div style="font-size:11px">Walk-in <a href="https://instagram.com/thetipplernyc" target="_blank" style="color:#E040FB">@thetipplernyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Chelsea">
+<div style="font-weight:600;color:#ff9800">Catch</div>
+<div style="color:#999;font-size:11px">Seafood + scene. Meatpacking rooftop. Beautiful crowd.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 21 9th Ave</div>
+<div style="font-size:11px"><a href="https://resy.com/cities/ny/catch" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/catchrestaurants" target="_blank" style="color:#E040FB">@catchrestaurants</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Chelsea">
+<div style="font-weight:600;color:#ff9800">Buddakan</div>
+<div style="color:#999;font-size:11px">Dramatic Asian. Giant communal table, date classic, theatrical.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 75 9th Ave</div>
+<div style="font-size:11px"><a href="https://opentable.com" target="_blank" style="color:#ff9800">OpenTable</a> <a href="https://instagram.com/buddakannyc" target="_blank" style="color:#E040FB">@buddakannyc</a></div>
+</div>
+<h2>Meatpacking (3)</h2>
+<div class="item" data-cat="formal" data-hood="Meatpacking">
+<div style="font-weight:600;color:#f44336">Gansevoort Rooftop</div>
+<div style="color:#999;font-size:11px">Hotel rooftop pool bar. Models, bottle service, Hudson views.</div>
+<div style="font-size:11px;color:#777">🌙 Fri-Sat | 📍 18 9th Ave</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/gansevoortmeatpacking" target="_blank" style="color:#E040FB">@gansevoortmeatpacking</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Meatpacking">
+<div style="font-weight:600;color:#ff9800">Pastis</div>
+<div style="color:#999;font-size:11px">Revived French bistro. Classic scene, beautiful people, steak frites.</div>
+<div style="font-size:11px;color:#777">🌙 Any | 📍 52 Gansevoort St</div>
+<div style="font-size:11px"><a href="https://resy.com" target="_blank" style="color:#ff9800">Resy</a> <a href="https://instagram.com/pastisnyc" target="_blank" style="color:#E040FB">@pastisnyc</a></div>
+</div>
+<div class="item" data-cat="restaurant" data-hood="Meatpacking">
+<div style="font-weight:600;color:#ff9800">STK</div>
+<div style="color:#999;font-size:11px">Steakhouse + DJ. Loud, sceney, bottle-service energy.</div>
+<div style="font-size:11px;color:#777">🌙 Thu-Sat | 📍 26 Little W 12th St</div>
+<div style="font-size:11px"><a href="https://opentable.com" target="_blank" style="color:#ff9800">OpenTable</a> <a href="https://instagram.com/stksteakhouse" target="_blank" style="color:#E040FB">@stksteakhouse</a></div>
+</div></div>
+<script>
+const map=L.map('map',{zoomControl:true}).setView([40.7258,-73.9965],14);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'OSM+CARTO',maxZoom:19}).addTo(map);
+
+const spots=[{"n": "The Mulberry", "a": "240 Mulberry St", "lat": 40.7236, "lng": -73.9958, "h": "Nolita", "c": "cocktail", "v": "Subterranean speakeasy, velvet rope, NYFW crowd. THE Nolita spot.", "b": "Thu-Sat", "r": "Door list", "u": "https://www.themulberrybar.com", "ig": "@themulberrybar"}, {"n": "Emilio's Ballato", "a": "55 E Houston St", "lat": 40.7244, "lng": -73.9946, "h": "Nolita", "c": "restaurant", "v": "Celebrity Italian. Secret back room, A-listers, spaghetti.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@emiliosballato"}, {"n": "Spring Lounge", "a": "48 Spring St", "lat": 40.7225, "lng": -73.9952, "h": "Nolita", "c": "casual", "v": "Since 1920s. Cheap drinks, tin ceilings, always packed.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@springloungenyc"}, {"n": "Beyond the Pale", "a": "251 Mott St", "lat": 40.7232, "lng": -73.9944, "h": "Nolita", "c": "cocktail", "v": "Irish-meets-cocktail. Olive oil vodka martini, leather booths.", "b": "Wed-Sat", "r": "Walk-in", "u": "", "ig": "@beyondthepalenyc"}, {"n": "Mother's Ruin", "a": "18 Spring St", "lat": 40.7218, "lng": -73.9935, "h": "Nolita", "c": "casual", "v": "Strong drinks, always a scene, neighborhood staple.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": "@mothersruinnyc"}, {"n": "La Esquina", "a": "114 Kenmare St", "lat": 40.7207, "lng": -73.9964, "h": "Nolita", "c": "restaurant", "v": "Hidden underground Mexican. Celeb sightings, bottle service.", "b": "Wed-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@laesquinanyc"}, {"n": "Casino", "a": "186 Hester St", "lat": 40.7183, "lng": -73.9963, "h": "Nolita", "c": "restaurant", "v": "Mediterranean, 80s theme. Dimes Square upscale, branzino.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@casino_nyc"}, {"n": "Pearl Box", "a": "250 Mott St", "lat": 40.7234, "lng": -73.9943, "h": "Nolita", "c": "formal", "v": "Glamorous caviar bar. Ice-cold martinis, champagne.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@pearlboxnyc"}, {"n": "Oriana", "a": "TBD Nolita", "lat": 40.724, "lng": -73.994, "h": "Nolita", "c": "restaurant", "v": "NEW 2026 - 80-seat dramatic from Noortwyck team.", "b": "TBD", "r": "TBD", "u": "", "ig": ""}, {"n": "Raoul's", "a": "180 Prince St", "lat": 40.7262, "lng": -74.0008, "h": "SoHo", "c": "restaurant", "v": "Iconic French bistro. Martinis at the bar, steak au poivre, De Niro.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@raoulsnyc"}, {"n": "Balthazar", "a": "80 Spring St", "lat": 40.7227, "lng": -73.9981, "h": "SoHo", "c": "restaurant", "v": "THE SoHo scene. French bistro, always buzzing, impossible res.", "b": "Any", "r": "Resy", "u": "https://resy.com/cities/ny/balthazar", "ig": "@balthazarny"}, {"n": "Fanelli Cafe", "a": "94 Prince St", "lat": 40.725, "lng": -73.999, "h": "SoHo", "c": "casual", "v": "Since 1847. Models, artists, sidewalk block party, cheap.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": "@fanellicafe"}, {"n": "Sartiano's", "a": "99 Prince St", "lat": 40.7249, "lng": -73.9988, "h": "SoHo", "c": "restaurant", "v": "Mercer Hotel Italian. Leather pants crowd, SubMercer club downstairs.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@sartianos"}, {"n": "Milady's", "a": "160 Prince St", "lat": 40.7258, "lng": -74.0005, "h": "SoHo", "c": "cocktail", "v": "Former dive gone upscale. Inventive cocktails, sidewalk seating.", "b": "Wed-Sat", "r": "Walk-in", "u": "", "ig": "@miladysbar"}, {"n": "South Soho Bar", "a": "70 Kenmare St", "lat": 40.7218, "lng": -73.9965, "h": "SoHo", "c": "cocktail", "v": "Tiny, dim, perfect date spot. Great Old Fashioneds, dark booth.", "b": "Tue-Sat", "r": "Walk-in", "u": "", "ig": ""}, {"n": "Guild Bar", "a": "53 Howard St", "lat": 40.7194, "lng": -73.9995, "h": "SoHo", "c": "formal", "v": "5-seat bar in luxury store. Best martini in NYC. Prada crowd.", "b": "Any", "r": "Walk-in (5 seats)", "u": "", "ig": ""}, {"n": "Dandelion", "a": "134 W Houston St", "lat": 40.728, "lng": -74.001, "h": "SoHo", "c": "cocktail", "v": "NEW Dec 2025 - Zero Bond team. Sceney, well-made cocktails.", "b": "Thu-Sat", "r": "Resy", "u": "https://www.dandelionnewyork.com", "ig": "@dandelionnewyork"}, {"n": "The Eighty Six", "a": "86 Bedford St", "lat": 40.7318, "lng": -74.0028, "h": "SoHo", "c": "restaurant", "v": "NEW - Catch Hospitality Group. Former Chumley's space, buzzy.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@theeightysix"}, {"n": "Kabin", "a": "Hudson Square", "lat": 40.726, "lng": -74.0078, "h": "SoHo", "c": "cocktail", "v": "NEW - Sleek Nordic cocktail lounge. TimeOut pick.", "b": "Wed-Sat", "r": "Walk-in", "u": "", "ig": "@kabinnyc"}, {"n": "Experimental Cocktail Club", "a": "191 Chrystie St", "lat": 40.7227, "lng": -73.9925, "h": "NoHo", "c": "cocktail", "v": "Parisian speakeasy. Inventive cocktails, moody upstairs rooms.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@eccnyc"}, {"n": "Bosco", "a": "104 MacDougal St", "lat": 40.7292, "lng": -73.9993, "h": "NoHo", "c": "cocktail", "v": "Candlelit cocktail bar, strong wine list, romantic.", "b": "Wed-Sat", "r": "Walk-in", "u": "", "ig": "@bosconyc"}, {"n": "Bond St", "a": "6 Bond St", "lat": 40.7262, "lng": -73.993, "h": "NoHo", "c": "restaurant", "v": "Sexy Japanese townhouse. Low lights, fashion crowd, sushi.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@bondstnyc"}, {"n": "The Garret East", "a": "206 Ave A", "lat": 40.7278, "lng": -73.9803, "h": "NoHo", "c": "casual", "v": "Hidden above Five Guys. Burgers + cocktails upstairs, fun.", "b": "Fri-Sat", "r": "Walk-in", "u": "", "ig": "@thegarretnyc"}, {"n": "Stone & Soil", "a": "40 E 20th St", "lat": 40.7388, "lng": -73.989, "h": "NoHo", "c": "cocktail", "v": "NEW Feb 2026 - Japanese sustainability cocktails. Eater hot list.", "b": "Wed-Sat", "r": "Walk-in", "u": "", "ig": "@stoneandsoilnyc"}, {"n": "Ripple Room", "a": "249 Eldridge St", "lat": 40.7228, "lng": -73.9915, "h": "LES", "c": "dance", "v": "Lounge + upstairs dance floor. Velvet rope, thumping music, your spot.", "b": "Fri-Sat", "r": "Walk-in", "u": "", "ig": "@therippleroom"}, {"n": "Tigre", "a": "142 Rivington St", "lat": 40.7198, "lng": -73.9856, "h": "LES", "c": "cocktail", "v": "Hidden glam bar. Gold, mirrors, Maison Premiere team. Reservations only.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@tigrenyc"}, {"n": "Double Chicken Please", "a": "115 Allen St", "lat": 40.7188, "lng": -73.99, "h": "LES", "c": "cocktail", "v": "World's 50 Best Bars. Fried chicken + cartoon cocktails. The Coop upstairs.", "b": "Tue-Sat", "r": "Resy (Coop)", "u": "https://resy.com", "ig": "@doublechickenplease"}, {"n": "Attaboy", "a": "134 Eldridge St", "lat": 40.7202, "lng": -73.992, "h": "LES", "c": "cocktail", "v": "No menu. Tell bartender what you like. Successor to Milk & Honey.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@attaabornyc"}, {"n": "Superbueno", "a": "127 MacDougal St", "lat": 40.7287, "lng": -73.9998, "h": "LES", "c": "dance", "v": "World's #2 bar N. America. Red-lit Mexican-American, conga lines.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": "@superbuenobar"}, {"n": "Ray's", "a": "177 Chrystie St", "lat": 40.7216, "lng": -73.9925, "h": "LES", "c": "casual", "v": "Faux-retro dive. Succession owner, tequila sodas, packed nightly.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@rabornyc"}, {"n": "Le Dive", "a": "30 Rivington St", "lat": 40.7204, "lng": -73.9916, "h": "LES", "c": "wine", "v": "Retro French wine bar. Natural wine, great patio, Dimes Square.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": "@ledivenyc"}, {"n": "Babysips", "a": "165 Rivington St", "lat": 40.7194, "lng": -73.9844, "h": "LES", "c": "wine", "v": "Narrow wine bar. Skin-contact wines, seafoam walls, octopus salad.", "b": "Wed-Sat", "r": "Walk-in", "u": "", "ig": "@babysipsnyc"}, {"n": "Parcelle", "a": "84 Rivington St", "lat": 40.72, "lng": -73.9882, "h": "LES", "c": "wine", "v": "Wine lounge + retailer. Leather couches, Dimes Square, casual.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@parcellenyc"}, {"n": "Lucien", "a": "14 1st Ave", "lat": 40.7226, "lng": -73.9893, "h": "LES", "c": "restaurant", "v": "French bistro since 98. Young fashion crowd, Charli XCX vibes.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@luciennyc"}, {"n": "Jean's", "a": "507 E 6th St", "lat": 40.7253, "lng": -73.985, "h": "LES", "c": "dance", "v": "Chili oil martinis, micro-influencers. Red club downstairs for dancing.", "b": "Fri-Sat", "r": "Walk-in", "u": "", "ig": "@jeansnyc"}, {"n": "Chin Up", "a": "170 Orchard St", "lat": 40.7216, "lng": -73.9889, "h": "LES", "c": "cocktail", "v": "NEW - Gin destination. Eater hot list Feb 2026.", "b": "Wed-Sat", "r": "Walk-in", "u": "https://www.chinupbarnyc.com", "ig": "@chinupbarnyc"}, {"n": "Kiki's", "a": "130 Division St", "lat": 40.7145, "lng": -73.9932, "h": "LES", "c": "restaurant", "v": "Greek taverna, cash only. Always a wait, always worth it.", "b": "Any", "r": "Walk-in (cash)", "u": "", "ig": "@kikisnyc"}, {"n": "Lullaby", "a": "151 Rivington St", "lat": 40.7196, "lng": -73.9848, "h": "LES", "c": "dance", "v": "Basement bar, couches, low ceilings, everyone dancing. House party vibes.", "b": "Fri-Sat", "r": "Walk-in", "u": "", "ig": "@lullabylowereastside"}, {"n": "The Dancer", "a": "68 Rivington St", "lat": 40.7201, "lng": -73.989, "h": "LES", "c": "cocktail", "v": "Small cocktail bar. Red booth, falafel, low-key after-dinner.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": ""}, {"n": "Bar Goto", "a": "245 Eldridge St", "lat": 40.723, "lng": -73.9916, "h": "LES", "c": "cocktail", "v": "Japanese cocktails from Pegu Club alum. Sakura martini, refined.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@bargoto"}, {"n": "Angel's Share", "a": "8 Stuyvesant St", "lat": 40.7299, "lng": -73.9893, "h": "East Village", "c": "cocktail", "v": "Hidden Japanese. Strict rules (no standing, small groups). World-class.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@angelsshare"}, {"n": "Death & Co", "a": "433 E 6th St", "lat": 40.7256, "lng": -73.984, "h": "East Village", "c": "cocktail", "v": "Craft cocktail temple. Dark, intimate, pioneered the scene.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@deathandcompany"}, {"n": "Bar Snack", "a": "92 Second Ave", "lat": 40.7268, "lng": -73.9868, "h": "East Village", "c": "casual", "v": "#1 TimeOut NYC 2026. Pickle cheese curds, frozen mezcal, 70s vibes.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@barsnacknyc"}, {"n": "Joyface", "a": "90 Ave A", "lat": 40.727, "lng": -73.9837, "h": "East Village", "c": "dance", "v": "Retro 70s living room. Waterbed, disco ball, chaotic dancing.", "b": "Fri-Sat", "r": "Walk-in", "u": "", "ig": "@joyfacebar"}, {"n": "PDT", "a": "113 St Marks Pl", "lat": 40.728, "lng": -73.9859, "h": "East Village", "c": "cocktail", "v": "Phone booth in Crif Dogs hot dog shop. OG speakeasy.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@pdtnyc"}, {"n": "Oddball", "a": "212 Ave A", "lat": 40.7268, "lng": -73.983, "h": "East Village", "c": "cocktail", "v": "NEW - Retro-futurist. Odd flavor pairings, $18 cocktails, big booths.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": "@oddballnyc"}, {"n": "Seiren", "a": "TBD East Village", "lat": 40.7275, "lng": -73.9845, "h": "East Village", "c": "cocktail", "v": "NEW - Conservas bar. Eater hot list Feb 2026.", "b": "Wed-Sat", "r": "Walk-in", "u": "https://www.seirennyc.com", "ig": "@seirennyc"}, {"n": "Stars", "a": "51 E 1st St", "lat": 40.725, "lng": -73.9905, "h": "East Village", "c": "wine", "v": "12-seat wine bar. 1000+ bottles, omakase-style, cedar-lined.", "b": "Tue-Sat", "r": "Walk-in", "u": "", "ig": "@starseastvillage"}, {"n": "Ding-A-Ling", "a": "95 Ave A", "lat": 40.7265, "lng": -73.9838, "h": "East Village", "c": "dance", "v": "70s themed. Quiet early, packed after midnight. Disco ball dancing.", "b": "Fri-Sat late", "r": "Walk-in", "u": "", "ig": "@dingalingbar"}, {"n": "Wiggle Room", "a": "152 1st Ave", "lat": 40.7288, "lng": -73.9844, "h": "East Village", "c": "dance", "v": "Main floor for dates, basement has disco ball + dance floor. DJ after 10pm.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": "@wiggleroomnyc"}, {"n": "Employees Only", "a": "510 Hudson St", "lat": 40.7326, "lng": -74.0069, "h": "West Village", "c": "cocktail", "v": "Iconic speakeasy since 2004. Psychic at door, lab coat bartenders.", "b": "Any", "r": "Resy (dining)", "u": "https://resy.com", "ig": "@employeesonlybar"}, {"n": "Little Branch", "a": "22 7th Ave S", "lat": 40.7323, "lng": -74.0004, "h": "West Village", "c": "cocktail", "v": "Underground speakeasy, strict capacity, live jazz, pitch-black.", "b": "Tue-Sat", "r": "Walk-in", "u": "", "ig": ""}, {"n": "Katana Kitten", "a": "531 Hudson St", "lat": 40.733, "lng": -74.0072, "h": "West Village", "c": "cocktail", "v": "Japanese cocktails. Matcha, shiso G&T, mortadella katsu sando.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@katanakitten"}, {"n": "Sip & Guzzle", "a": "108 Greenwich Ave", "lat": 40.7369, "lng": -74.0003, "h": "West Village", "c": "cocktail", "v": "Bi-level from EO vets. Shochu cocktails, $150 wagyu sando.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": "@sipandguzzle"}, {"n": "Bar Pisellino", "a": "52 Grove St", "lat": 40.7328, "lng": -74.0036, "h": "West Village", "c": "restaurant", "v": "Italian aperitivo from Via Carota team. Spritz central, sidewalk scene.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@barpisellino"}, {"n": "The Happiest Hour", "a": "121 W 10th St", "lat": 40.734, "lng": -73.9998, "h": "West Village", "c": "casual", "v": "Retro tiki vibes, frozen drinks, always a fun time.", "b": "Fri-Sat", "r": "Walk-in", "u": "", "ig": "@thehappiesthour"}, {"n": "ZZ's Club", "a": "55 Hudson St", "lat": 40.7197, "lng": -74.0087, "h": "West Village", "c": "formal", "v": "Members-only jazz supper club. A-list crowd, exclusive.", "b": "Thu-Sat", "r": "Members only", "u": "", "ig": "@zzsclub"}, {"n": "Binx", "a": "162 W 4th St", "lat": 40.7312, "lng": -74.0005, "h": "West Village", "c": "wine", "v": "Pastel wine bar. Disco ball, fuzzy bar stools, natural wines.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@binxwine"}, {"n": "Carbone", "a": "181 Thompson St", "lat": 40.7282, "lng": -74.0, "h": "West Village", "c": "restaurant", "v": "Italian-American icon. Celebs, velvet booths, spicy rigatoni, $$$$.", "b": "Any", "r": "Resy (very hard)", "u": "https://resy.com/cities/ny/carbone", "ig": "@carbonenewyork"}, {"n": "I Sodi", "a": "105 Christopher St", "lat": 40.7338, "lng": -74.0042, "h": "West Village", "c": "restaurant", "v": "Tiny Tuscan. Romantic, impossible reservation, perfect pasta.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@isodinyc"}, {"n": "Via Carota", "a": "51 Grove St", "lat": 40.7327, "lng": -74.0035, "h": "West Village", "c": "restaurant", "v": "Walk-in only Italian. Outdoor scene, Jenner/Bieber sightings.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@viacarota"}, {"n": "American Bar", "a": "33 Greenwich Ave", "lat": 40.7356, "lng": -74.0002, "h": "West Village", "c": "restaurant", "v": "Upscale, Hamptons crowd. Solid burger, miso black cod.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@americanbarnyc"}, {"n": "Dante", "a": "79-81 MacDougal St", "lat": 40.7291, "lng": -73.9995, "h": "Greenwich Vlg", "c": "cocktail", "v": "World's best bar regular. Negronis, gorgeous space, aperitivo.", "b": "Any", "r": "Resy", "u": "https://resy.com/cities/ny/dante", "ig": "@dante_nyc"}, {"n": "Bar Pitti", "a": "268 6th Ave", "lat": 40.7309, "lng": -74.0003, "h": "Greenwich Vlg", "c": "restaurant", "v": "Walk-in Italian trattoria. Outdoor scene, truffle pasta, cash only.", "b": "Any", "r": "Walk-in (cash)", "u": "", "ig": "@barpitti"}, {"n": "124 Old Rabbit Club", "a": "124 MacDougal St", "lat": 40.7286, "lng": -74.0001, "h": "Greenwich Vlg", "c": "cocktail", "v": "Speakeasy below a coffee shop. Dark, romantic, strong drinks.", "b": "Thu-Sat", "r": "Walk-in", "u": "", "ig": ""}, {"n": "Noortwyck", "a": "66 Greenwich Ave", "lat": 40.7358, "lng": -74.0, "h": "Greenwich Vlg", "c": "restaurant", "v": "Minimalist, ambitious. Wine-focused, intimate, creative.", "b": "Wed-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@noortwyck"}, {"n": "Titsou", "a": "Hotel Fouquet's, 100 Barclay", "lat": 40.7138, "lng": -74.0117, "h": "Tribeca", "c": "cocktail", "v": "Tiny, discreet, chandeliers. $32 smoked old fashioned. No res, host approval.", "b": "Thu-Sat", "r": "Walk-in (host approval)", "u": "", "ig": "@fouquetsnewyork"}, {"n": "Galerie", "a": "Smyth Hotel, 85 W Broadway", "lat": 40.7155, "lng": -74.008, "h": "Tribeca", "c": "cocktail", "v": "Hotel bar. Fireplaces, velvet furniture, great burger from next door.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@galeriebar"}, {"n": "Saint Tuesday", "a": "Walker Hotel, 15 Walker St", "lat": 40.7178, "lng": -74.0018, "h": "Tribeca", "c": "cocktail", "v": "Hidden underground bar. Secret entrance, live jazz, blue cheese cocktails.", "b": "Tue-Sat", "r": "Walk-in", "u": "", "ig": "@sainttuesdaynyc"}, {"n": "Weather Up", "a": "159 Duane St", "lat": 40.7162, "lng": -74.0068, "h": "Tribeca", "c": "cocktail", "v": "Creative cocktails. Allspice, Madeira, apricot. Long bar, booths.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@weatherupbar"}, {"n": "Brandy Library", "a": "25 N Moore St", "lat": 40.7196, "lng": -74.0058, "h": "Tribeca", "c": "formal", "v": "1500+ spirits. Leather chairs, fireplace. Must be 25+. Power moves.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@brandylibrary"}, {"n": "North Bar", "a": "213 N End Ave", "lat": 40.7175, "lng": -74.014, "h": "Tribeca", "c": "casual", "v": "Liveliest in NW Tribeca. Nautical theme, fish tacos, vodka-stained polos.", "b": "Fri-Sat", "r": "Walk-in", "u": "", "ig": "@northbartribeca"}, {"n": "Primos", "a": "Frederick Hotel, 95 W Broadway", "lat": 40.7159, "lng": -74.0082, "h": "Tribeca", "c": "dance", "v": "Hotel bar + big dance floor in back. Underrated, not too crowded.", "b": "Fri-Sat", "r": "Walk-in", "u": "", "ig": "@primostribeca"}, {"n": "Anotheroom", "a": "249 W Broadway", "lat": 40.7196, "lng": -74.005, "h": "Tribeca", "c": "wine", "v": "Darkest bar in Tribeca. Beer/wine/sake only. Romantic, side-by-side seating.", "b": "Any", "r": "Walk-in", "u": "", "ig": ""}, {"n": "Puffy's Tavern", "a": "81 Hudson St", "lat": 40.719, "lng": -74.0083, "h": "Tribeca", "c": "casual", "v": "Classic neighborhood dive. No pretense, darts, local regulars.", "b": "Any", "r": "Walk-in", "u": "", "ig": ""}, {"n": "Fouquet's", "a": "100 Barclay St", "lat": 40.7138, "lng": -74.0117, "h": "Tribeca", "c": "restaurant", "v": "Tribeca billionaires. Designer everything, steak tartare. A bit much.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@fouquetsnewyork"}, {"n": "Locanda Verde", "a": "377 Greenwich St", "lat": 40.721, "lng": -74.0098, "h": "Tribeca", "c": "restaurant", "v": "Robert De Niro's Italian. Andrew Carmellini. Always packed.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@locandaverdenyc"}, {"n": "The Odeon", "a": "145 W Broadway", "lat": 40.7173, "lng": -74.0073, "h": "Tribeca", "c": "restaurant", "v": "Classic since 1980. French-American bistro. Warhol hung here.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@theodeonrestaurant"}, {"n": "Raines Law Room", "a": "48 W 17th St", "lat": 40.739, "lng": -73.9935, "h": "Flatiron", "c": "cocktail", "v": "Ring the bell. Velvet couches, incredible cocktails, date classic.", "b": "Any", "r": "Resy", "u": "https://resy.com/cities/ny/raines-law-room", "ig": "@raineslawroom"}, {"n": "Dear Irving", "a": "55 Irving Pl", "lat": 40.7361, "lng": -73.9878, "h": "Flatiron", "c": "cocktail", "v": "Time-travel themed. Gorgeous decor, strong date magnet.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@dearirving"}, {"n": "Wallflower", "a": "W 24th St", "lat": 40.7422, "lng": -73.989, "h": "Flatiron", "c": "cocktail", "v": "Vinyl records + cocktails + downtown views. New and buzzy.", "b": "Wed-Sat", "r": "Walk-in", "u": "", "ig": ""}, {"n": "Fotografiska Bar", "a": "281 Park Ave S", "lat": 40.7385, "lng": -73.9862, "h": "Flatiron", "c": "formal", "v": "Photography museum rooftop/bar. Stunning views, creative crowd.", "b": "Fri-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@fotografiska.newyork"}, {"n": "Rose Bar", "a": "2 Lexington Ave", "lat": 40.738, "lng": -73.9833, "h": "Gramercy", "c": "formal", "v": "Gramercy Park Hotel. Art on walls, fashion crowd, bottle service.", "b": "Thu-Sat", "r": "Resy / walk-in", "u": "", "ig": "@rosebar"}, {"n": "Casa Mono", "a": "52 Irving Pl", "lat": 40.7362, "lng": -73.9877, "h": "Gramercy", "c": "restaurant", "v": "Mario Batali's Spanish tapas. Intimate, buzzy, wine-heavy.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@casamono"}, {"n": "Pete's Tavern", "a": "129 E 18th St", "lat": 40.7372, "lng": -73.9856, "h": "Gramercy", "c": "casual", "v": "NYC's oldest bar (1864). Relaxed, sidewalk tables, good food.", "b": "Any", "r": "OpenTable", "u": "https://opentable.com", "ig": "@petestavern"}, {"n": "Old Town Bar", "a": "45 E 18th St", "lat": 40.7383, "lng": -73.9896, "h": "Gramercy", "c": "casual", "v": "Historic saloon. Solid burgers, tall ceilings, unpretentious.", "b": "Any", "r": "Walk-in", "u": "", "ig": "@oldtownbar"}, {"n": "Raines Law Room Chelsea", "a": "232 W 21st St", "lat": 40.7426, "lng": -73.9974, "h": "Chelsea", "c": "cocktail", "v": "Second location. Same speakeasy magic, same bell.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@raineslawroom"}, {"n": "Bathtub Gin", "a": "132 W 27th St", "lat": 40.7462, "lng": -73.9929, "h": "Chelsea", "c": "cocktail", "v": "Behind coffee shop door. Bathtub centerpiece, great cocktails.", "b": "Fri-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@bathtubginnyc"}, {"n": "PHD Rooftop", "a": "355 W 16th St", "lat": 40.741, "lng": -74.0005, "h": "Chelsea", "c": "formal", "v": "Dream Hotel rooftop. Bottle service, skyline views, model crowd.", "b": "Fri-Sat", "r": "Tock", "u": "https://www.phdrooftop.com", "ig": "@phdrooftop"}, {"n": "The Tippler", "a": "425 W 15th St", "lat": 40.7413, "lng": -74.005, "h": "Chelsea", "c": "casual", "v": "Below Chelsea Market. Spacious, craft cocktails, great for groups.", "b": "Wed-Sat", "r": "Walk-in", "u": "", "ig": "@thetipplernyc"}, {"n": "Catch", "a": "21 9th Ave", "lat": 40.7407, "lng": -74.0048, "h": "Chelsea", "c": "restaurant", "v": "Seafood + scene. Meatpacking rooftop. Beautiful crowd.", "b": "Thu-Sat", "r": "Resy", "u": "https://resy.com/cities/ny/catch", "ig": "@catchrestaurants"}, {"n": "Buddakan", "a": "75 9th Ave", "lat": 40.743, "lng": -74.0048, "h": "Chelsea", "c": "restaurant", "v": "Dramatic Asian. Giant communal table, date classic, theatrical.", "b": "Any", "r": "OpenTable", "u": "https://opentable.com", "ig": "@buddakannyc"}, {"n": "Gansevoort Rooftop", "a": "18 9th Ave", "lat": 40.7404, "lng": -74.0052, "h": "Meatpacking", "c": "formal", "v": "Hotel rooftop pool bar. Models, bottle service, Hudson views.", "b": "Fri-Sat", "r": "Resy", "u": "https://resy.com", "ig": "@gansevoortmeatpacking"}, {"n": "Pastis", "a": "52 Gansevoort St", "lat": 40.7398, "lng": -74.007, "h": "Meatpacking", "c": "restaurant", "v": "Revived French bistro. Classic scene, beautiful people, steak frites.", "b": "Any", "r": "Resy", "u": "https://resy.com", "ig": "@pastisnyc"}, {"n": "STK", "a": "26 Little W 12th St", "lat": 40.7402, "lng": -74.0074, "h": "Meatpacking", "c": "restaurant", "v": "Steakhouse + DJ. Loud, sceney, bottle-service energy.", "b": "Thu-Sat", "r": "OpenTable", "u": "https://opentable.com", "ig": "@stksteakhouse"}];
+const colors={"casual": "#4CAF50", "cocktail": "#2196F3", "dance": "#E040FB", "formal": "#f44336", "restaurant": "#ff9800", "wine": "#FFD700"};
+const activeFilters=new Set(Object.keys(colors));
+let markers=[];
+
+function renderMarkers(){
+  markers.forEach(m=>map.removeLayer(m.marker));
+  markers=[];
+  spots.forEach(s=>{
+    if(!activeFilters.has(s.c))return;
+    const color=colors[s.c]||'#999';
+    const igLink=s.ig?`<a href="https://instagram.com/${s.ig.replace('@','')}" target="_blank" style="color:#E040FB">${s.ig}</a>`:'';
+    const resLink=s.u?`<a href="${s.u}" target="_blank" style="color:#ff9800">${s.r}</a>`:s.r;
+    const popup=`<b>${s.n}</b><br><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${color};color:#fff">${s.c.toUpperCase()}</span><br><i>${s.v}</i><br>📍 ${s.a}<br>🌙 Best: ${s.b}<br>📋 ${resLink}<br>${igLink}`;
+    const m=L.circleMarker([s.lat,s.lng],{radius:7,fillColor:color,color:'#fff',weight:1.5,opacity:1,fillOpacity:0.85}).addTo(map).bindPopup(popup);
+    markers.push({marker:m,cat:s.c});
+  });
+}
+
+function toggleFilter(btn){
+  const cat=btn.dataset.cat;
+  if(activeFilters.has(cat)){activeFilters.delete(cat);btn.classList.remove('active')}
+  else{activeFilters.add(cat);btn.classList.add('active')}
+  renderMarkers();
+  // Also filter sidebar
+  document.querySelectorAll('.sidebar .item').forEach(el=>{
+    el.style.display=activeFilters.has(el.dataset.cat)?'block':'none';
+  });
+}
+
+renderMarkers();
+
+const legend=L.control({position:'bottomleft'});
+legend.onAdd=function(){const d=L.DomUtil.create('div','legend');d.innerHTML='<b>NYC Scene Map</b><div><i style="background:#4CAF50"></i>Casual</div><div><i style="background:#2196F3"></i>Cocktail</div><div><i style="background:#E040FB"></i>Dancing</div><div><i style="background:#f44336"></i>Formal</div><div><i style="background:#ff9800"></i>Restaurant</div><div><i style="background:#FFD700"></i>Wine Bar</div><div style="margin-top:4px;font-size:9px;color:#888">Tap filters above | Tap markers for details</div>';return d};
+legend.addTo(map);
+</script>
+</body>
+</html>
